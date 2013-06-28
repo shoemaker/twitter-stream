@@ -1,5 +1,7 @@
 # Twitter Stream
 
+### Check out this project in action at [http://shoe.io/stream](http://shoe.io/stream).
+
 This project uses the [Twitter Streaming APIs](https://dev.twitter.com/docs/streaming-apis) to search on a provided term. The results are then displayed, mapped, and the entities within the tweet aggregated and sorted by popularity. 
 I was looking for a reason to play with [web sockets](http://en.wikipedia.org/wiki/WebSocket) and the [socket.io](http://socket.io) library. 
 Twitter provided a great content source for streaming content. 
