@@ -1,4 +1,7 @@
 var fs = require('fs');  // File system access
+var express = require('express');  // Express framework
+var hogan = require('hogan.js');  // Library for Mustache templates
+var moment = require('moment');
 
 // App configuration
 if (!fs.existsSync('config.js')) {
@@ -7,9 +10,6 @@ if (!fs.existsSync('config.js')) {
 	process.exit(1);
 }
 
-var express = require('express');  // Express framework
-var hogan = require('./lib/hogan.js/hogan.js');  // Library for Mustache templates
-var moment = require('./lib/moment');
 var twitter = require('./controllers/twitter');
 var user = require('./controllers/user');
 var c = require('./config').config;  // App configuration
@@ -22,7 +22,9 @@ app.use(express.bodyParser());
 var server = require('http').createServer(app),
 	io = require('socket.io').listen(server, { resource: '/stream/socket.io' });
 		
-server.listen(8088);
+server.listen(c.port);
+console.log('\nServer running on port ' + c.port + '.');
+console.log('Try this: http://localhost:' + c.port + '/stream\n');
 
 // Define paths for serving up static content. 
 app.use('/stream/css', express.static(__dirname + '/css'));

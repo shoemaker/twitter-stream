@@ -7,8 +7,9 @@
 // https://dev.twitter.com/docs/streaming-apis/streams/public#Connections  // ONLY ONE CONNECTION TO PUBLIC API
 
 var https = require('https');
-var OAuth = require('../lib/node-oauth/oauth').OAuth;
-var moment = require('../lib/moment');
+var OAuth = require('oauth').OAuth;
+var moment = require('moment');
+
 var c = require('../config').config;  // App configuration
 
 // Constructor

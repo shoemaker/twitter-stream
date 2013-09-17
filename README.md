@@ -12,9 +12,9 @@ I also used [doT.js](http://olado.github.io/doT/) for client-side templating, wh
 This will continue to be a learning/sandbox project.  
 
 ## Configuration
-Install [Express](http://expressjs.com/)
+Install dependencies. 
 	
-	$ npm install -g express
+	$ npm install
 
 Rename 'sample-config.js' to 'config.js' or obtain the decryption key for the Makefile.
 
@@ -34,11 +34,6 @@ Navigate to http://localhost:8088/stream
 ### [Express](http://expressjs.com/)
 Web application framework for Node.js.
 
-	$ npm install -g express
-
-
-### All other dependencies are already included in this project. 
-
 ### [socket.io](http://socket.io)
 Web sockets library. 
 
@@ -47,6 +42,15 @@ Mustache templating engine.
 
 ### [doT.js](http://olado.github.io/doT/)
 JavaScript templating engine. 
+
+### [moment](https://github.com/moment/moment)
+Parse, manipulate, and display dates.
+
+### [memory-cache](https://github.com/ptarjan/node-cache)
+A simple in-memory cache for nodejs. 
+
+### [mongodb](https://github.com/mongodb/node-mongodb-native)
+A node.js driver for MongoDB
 
 
 ## Open Issues

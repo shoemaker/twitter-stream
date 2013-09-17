@@ -1,4 +1,5 @@
 exports.config = {
+	port : 8088,
 	twitter : {
 		// userToken/userTokenSecret are optional properties. MUST populate if you wish to run this app from your desktop.
 		// Details can be found in the README.md. 
