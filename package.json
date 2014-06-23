@@ -1,34 +1,40 @@
 {
-	"name": "stream",
-	"version": "1.0.1",
-	"description": "Streaming the Twitter public timeline.",
-	"main": "stream.js",
-	"scripts": {
-		"start": "nodemon --debug stream.js",
-		"test": "echo \"Error: no test specified\" && exit 1"
-	},
-	"repository": {
-		"type": "git",
-		"url": "https://github.com/shoemaker/stream.git"
-	},
-	"keywords": [
-		"twitter"
-	],
-	"author": "Brian Shoemaker (brianshoemaker@gmail.com)",
-	"license": "MIT License",
-	"bugs": {
-		"url": "https://github.com/shoemaker/stream/issues"
-	},
-	"dependencies" : {
-		"hogan.js": ">=2.0.0",
-		"express": ">=3.3.5 <3.4.0",
-		"socket.io": "0.9.16",
-		"moment": "2.2.1",
-		"memory-cache" : "0.0.5",
-		"mongodb" : "1.3.18",
-		"oauth" : "git://github.com/shoemaker/node-oauth.git#master"
-	},
-	"devDependencies": {
-		"nodemon": ">=0.7.10"
-    }
+  "name": "twitter-stream",
+  "version": "1.1.0",
+  "description": "Streaming the Twitter public timeline.",
+  "main": "stream.js",
+  "scripts": {
+    "start": "nodemon --debug --watch ./ stream.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/shoemaker/stream.git"
+  },
+  "keywords": [
+    "twitter"
+  ],
+  "author": "Brian Shoemaker (brianshoemaker@gmail.com)",
+  "license": "MIT License",
+  "bugs": {
+    "url": "https://github.com/shoemaker/stream/issues"
+  },
+  "dependencies": {
+    "body-parser": "1.4.3",
+    "bower": "1.3.5",
+    "compression": "1.0.8",
+    "cookie-parser": "1.3.1",
+    "express": "4.4.4",
+    "hogan.js": "3.0.2",
+    "lodash": "2.4.1",
+    "memory-cache": "0.0.5",
+    "moment": "2.7.0",
+    "mongodb": "1.4.7",
+    "oauth": "0.9.12",
+    "socket.io": "1.0.6",
+    "twit": "1.1.15"
+  },
+  "devDependencies": {
+    "nodemon": "1.2.0"
+  }
 }

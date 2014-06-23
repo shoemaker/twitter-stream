@@ -3,10 +3,10 @@
 (function($) {
 
 	// init the socket.io object
-	var socket = io.connect('http://' + location.host, { 
-		resource: 'stream/socket.io',
-		'force new connection' : false
+	var socket = io.connect('http://' + location.host, {
+		path: '/stream/socket.io'
 	});
+
 	
 	// ****** STREAM OBJECT ******
 	

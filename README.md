@@ -15,6 +15,7 @@ This will continue to be a learning/sandbox project.
 Install dependencies. 
 	
 	$ npm install
+	$ bower install
 
 Rename 'sample-config.js' to 'config.js' or obtain the decryption key for the Makefile.
 
@@ -25,7 +26,7 @@ Click on an application then click the "Oauth tool" tab. Update config.js with u
 
 Fire up the site
 
-	node stream.js
+	npm start
 
 Navigate to http://localhost:8088/stream 
 

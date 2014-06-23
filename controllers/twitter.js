@@ -5,29 +5,21 @@
 // *** https://dev.twitter.com/docs/api/1.1/post/statuses/filter
 // http://stackoverflow.com/questions/12308246/how-to-implement-observer-pattern-in-javascript
 // https://dev.twitter.com/docs/streaming-apis/streams/public#Connections  // ONLY ONE CONNECTION TO PUBLIC API
+// https://github.com/ttezel/twit
 
 var https = require('https');
 var OAuth = require('oauth').OAuth;
+var Twit = require('twit')
 var moment = require('moment');
-var _ = require('lodash');
 
 var c = require('../config').config;  // App configuration
 
 // Constructor
 function Stream(user, streamType) {
-    this.oa = new OAuth(
-        'https://' + c.twitter.rootUrl + c.twitter.requestPath,
-        'https://' + c.twitter.rootUrl + c.twitter.tokenPath,
-        c.twitter.consumerKey,
-        c.twitter.consumerSecret,
-        '1.0A',
-        null,
-        'HMAC-SHA1'
-    );
     this.user = user;
     this.streamType = streamType;
     this.observers = [];  // Array of observer functions to notify when a new tweet is available. 
-    this.request = null;  // The HTTP request object, used to abort the stream later.   
+    this.twStream = null;  // The HTTP request object. 
     this.searchTerm = null;
     me = this;  // Help control scope. 
 }
@@ -49,85 +41,65 @@ Stream.prototype.unsubscribe = function(fn) {
 
 // Function to start a new Twitter stream. 
 Stream.prototype.start = function(searchTerm, mapBounds, callback) {
-    if (searchTerm && searchTerm.length > 0) this.searchTerm = searchTerm.toLowerCase();
-    var options = {
-        headers : {}
-        // ,agent : false
-    };
+    var T = new Twit({
+        consumer_key: c.twitter.consumerKey
+        , consumer_secret: c.twitter.consumerSecret
+        , access_token: me.user.token
+        , access_token_secret: me.user.tokenSecret
+    });
+
+    var path,
+        options = {};
     
-    if (me.streamType == 'public') {
-        options.host = 'stream.twitter.com';
-        
+    // Build up the Twitter query. 
+    if (me.streamType == 'public') { 
+        path = 'statuses/filter';
         if (searchTerm && searchTerm.length > 0) {
-            options.path = '/1.1/statuses/filter.json?track=' + encodeURIComponent(searchTerm); 
-            options.path += '&filter_level=medium';
-            
-        } else if (mapBounds && mapBounds.length > 0) {
-            options.path = '/1.1/statuses/filter.json?locations=' + mapBounds;
-        } else {
-            // Not enough data to search
-            callback('Not enough data provided to search. Please provide a search term or map bounds to query.');
+            options.track = searchTerm.toLowerCase();
+        } else if (mapBounds) {
+            // Sanity check, map bounds should be four item array
+            if (mapBounds.length !== 4) callback('Map bounds must contain four points.'); 
+            else options.locations = mapBounds; 
         }
-        options.method = 'POST';
-    } else { // if (me.streamType == 'user') {  // default to user stream
-        options.host = 'userstream.twitter.com';
-        options.path = '/1.1/user.json';
-        options.path += '?stall_warnings=true';
-        options.path += '&with=followings&replies=all'; 
-        options.method = 'GET';
+        options.filter_level = 'medium';
+    } else {  // if (me.streamType == 'user') {  // default to user stream
+        path = 'user';
+        options.with = 'followings';
+        options.replies = 'all';
     }
-        
-    // Build up the OAuth header for the HTTP request. 
-    options.headers.Authorization = this.oa.authHeader('https://' + options.host + options.path, me.user.token, me.user.tokenSecret, options.method);
-console.log(options.headers.Authorization);
-console.log('https://' + options.host + options.path);
-console.log(JSON.stringify(options.headers));
+
     // Start up the stream. 
-    this.request = https.request(options, function(response){ 
-        var twBuffer = '';
-console.log("statusCode: ", response.statusCode);
-console.log('HEADERS: ' + JSON.stringify(response.headers));
-        response.setEncoding('utf8');
-        response.on("data",function(chunk) {
-//console.log("Chunk:",chunk);
+    this.twStream = T.stream(path, options);
+    this.twStream.on('tweet', function(tweet) {
+        try {
+            if (tweet.user) {  // Check this is a tweet, not another object from the firehose.
+                tweet = cleanupTweet(tweet, [searchTerm]);
             
-            var returnIndex = _.findIndex(chunk, '\\r\\n');  // Looking for a carridge return
-            if (returnIndex == -1) {
-                twBuffer += chunk;
+                // Notify all observers of the new tweet. 
+                for (var ii=0; ii<me.observers.length; ii++) {
+                    me.observers[ii](tweet);
+                }           
             } else {
-                twBuffer += chunk.splice(0, returnIndex);
-                var rawTweet = twBuffer;
-                twBuffer = chunk;
-                try {
-                    var tweet = JSON.parse(rawTweet);  // Turn the raw tweet into JSON
-                    if (tweet.user) {  // Check this is a tweet, not another object from the firehose.
-                        tweet = cleanupTweet(tweet, [searchTerm]);
-                    
-                        // Notify all observers of the new tweet. 
-                        for (var ii=0; ii<me.observers.length; ii++) {
-                            me.observers[ii](tweet);
-                        }           
-                    } else {
-                        /* other statuses come from the Twitter API
-                            {"disconnect":{"code":7,"stream_name":"shoe_sandbox-statuses4480022","reason":"admin logout"}}
-                        */
-                        console.log(JSON.stringify(tweet));
-                    }
-                } catch (ex) {
-                    console.log('ERROR: ' + ex);
-                    callback(ex);
-                }
+                /* other statuses come from the Twitter API
+                    {"disconnect":{"code":7,"stream_name":"shoe_sandbox-statuses4480022","reason":"admin logout"}}
+                */
+                console.log(JSON.stringify(tweet));
             }
-        });  
-        
-        // Handler once the request is complete. 
-        response.on('end', function() { 
-            console.log('RESPONSE ENDED.');
-            callback(null);
-        });
-    });  
-    this.request.end();  // Start the request.  
-    callback(null);
+        } catch (ex) {
+            console.log('ERROR: ' + ex);
+            callback(ex);
+        }
+    });
+
+    this.twStream.on('limit', function (limitMessage) {
+        console.log('LIMIT MESSAGE:', limitMessage);
+        callback(null);
+    })
+
+    this.twStream.on('disconnect', function(message) {
+        console.log('RESPONSE ENDED.');
+        callback(null);
+    });
 };
 
 module.exports.Stream = Stream;
@@ -135,8 +107,7 @@ module.exports.Stream = Stream;
 
 // Function to refine the tweet object. 
 function cleanupTweet(tweet, keywords) {
-
-    var tweetDate = moment(tweet.created_at);
+    var tweetDate = moment(tweet.created_at, 'ddd MMM D HH:mm:ss ZZ YYYY');
     tweet.created_display_short = tweetDate.format('MMM D HH:mm');
     tweet.created_display_long = tweetDate.format('MMM Do YYYY, H:mm A');
     tweet.created_display_time = tweetDate.format('HH:mm:ss');

@@ -1,0 +1,23 @@
+{
+  "name": "twitter-stream",
+  "main": "stream.js",
+  "version": "1.1",
+  "homepage": "https://github.com/shoemaker/stream",
+  "authors": [
+    "Brian Shoemaker <brianshoemaker@gmail.com>"
+  ],
+  "description": "Streaming the Twitter public timeline.",
+  "moduleType": [
+    "node"
+  ],
+  "keywords": [
+    "twitter"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "jquery": ">=1.8.0 <2.1.0",
+    "bootstrap": "2.3.2",
+    "moment": "~2.7.0",
+    "doT": "~1.0.1"
+  }
+}
