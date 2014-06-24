@@ -7,6 +7,7 @@ var compress = require('compression');
 var cookieParser = require('cookie-parser');
 var hogan = require('hogan.js');  // Library for Mustache templates
 var moment = require('moment');
+var _ = require('lodash');
 
 // App configuration
 if (!fs.existsSync('config.js')) {
@@ -44,7 +45,7 @@ server.listen(app.get('port'), function(){
 // Default (root) URL handler
 app.get('/stream', function (req, res) { 
     var templateData = { user: null, isAuthorized: false, isSuperUser : false };  // Object merged with the mustache template. 
-    
+  
     // Load the default template
     fs.readFile('./views/default.ms', 'utf8', function (err, msTemplate) {
         if (err) { 
@@ -188,12 +189,8 @@ function stopStream(socket) {
 // If a userToken and userTokenSecret is defined, default to superuser. 
 function isSuperUser(username) {
     if (c.twitter.userToken && c.twitter.userTokenSecret) return true;
-    else if (c.superUsers) {
-        _.forEach(c.superUsers, function (user ) {
-            if (user == username) return true;
-        });
-    }
-    return false;
+    else if (c.superUsers && _.contains(c.superUsers, username)) return true;
+    else return false;
 }
 
     
