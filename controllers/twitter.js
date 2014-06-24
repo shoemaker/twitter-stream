@@ -1,16 +1,8 @@
-// https://dev.twitter.com/docs/rate-limiting/1.1 
-// 
-// https://dev.twitter.com/docs/auth/authorizing-request
-// http://stackoverflow.com/questions/12333289/node-js-fetching-twitter-streaming-api-eaddrnotavail
-// *** https://dev.twitter.com/docs/api/1.1/post/statuses/filter
-// http://stackoverflow.com/questions/12308246/how-to-implement-observer-pattern-in-javascript
-// https://dev.twitter.com/docs/streaming-apis/streams/public#Connections  // ONLY ONE CONNECTION TO PUBLIC API
-// https://github.com/ttezel/twit
-
 var https = require('https');
 var OAuth = require('oauth').OAuth;
 var Twit = require('twit')
 var moment = require('moment');
+var _ = require('lodash');
 
 var c = require('../config').config;  // App configuration
 
@@ -18,24 +10,35 @@ var c = require('../config').config;  // App configuration
 function Stream(user, streamType) {
     this.user = user;
     this.streamType = streamType;
-    this.observers = [];  // Array of observer functions to notify when a new tweet is available. 
-    this.twStream = null;  // The HTTP request object. 
+    this.tweetObservers = [];  // Array of observer functions to notify when a new tweet is available. 
+    this.msgObservers = [];  // Array of observers to notify when a new message (non-tweet) is available. 
+    this.tweetStream = null;  // The HTTP request object. 
     this.searchTerm = null;
     me = this;  // Help control scope. 
 }
 
 // Function to add a new subscriber. 
-Stream.prototype.subscribe = function(fn) {
-    this.observers.push(fn);
+Stream.prototype.subscribe = function(type, fn) {
+    if (type == 'tweet') this.tweetObservers.push(fn);
+    else if (type == 'message') this.msgObservers.push(fn);
 };
 
 // Function to remove a subscriber. 
-Stream.prototype.unsubscribe = function(fn) {
-    for (var ii=0; ii<this.observers.length; ii++) {
-        if (this.observers[ii] == fn) {
-            this.observers.splice(ii, 1);
-            break;
+Stream.prototype.unsubscribe = function(type, fn) {
+    if (type == 'tweet') {    
+        for (var ii=0; ii<this.tweetObservers.length; ii++) {
+            if (this.tweetObservers[ii] == fn) {
+                this.tweetObservers.splice(ii, 1);
+                break;
+            }
         }
+    } else if (type == 'message') {
+        for (var ii=0; ii<this.msgObservers.length; ii++) {
+            if (this.msgObservers[ii] == fn) {
+                this.msgObservers.splice(ii, 1);
+                break;
+            }
+        } 
     }
 };
 
@@ -69,16 +72,16 @@ Stream.prototype.start = function(searchTerm, mapBounds, callback) {
     }
 
     // Start up the stream. 
-    this.twStream = T.stream(path, options);
-    this.twStream.on('tweet', function(tweet) {
+    this.tweetStream = T.stream(path, options);
+    this.tweetStream.on('tweet', function(tweet) {
         try {
             if (tweet.user) {  // Check this is a tweet, not another object from the firehose.
                 tweet = cleanupTweet(tweet, [searchTerm]);
             
-                // Notify all observers of the new tweet. 
-                for (var ii=0; ii<me.observers.length; ii++) {
-                    me.observers[ii](tweet);
-                }           
+                // Notify all tweet observers of the new tweet. 
+                _.forEach(me.tweetObservers, function (observer) {
+                    observer(tweet);
+                })
             } else {
                 /* other statuses come from the Twitter API
                     {"disconnect":{"code":7,"stream_name":"shoe_sandbox-statuses4480022","reason":"admin logout"}}
@@ -87,18 +90,35 @@ Stream.prototype.start = function(searchTerm, mapBounds, callback) {
             }
         } catch (ex) {
             console.log('ERROR: ' + ex);
+
+            // Notify message observers of the issue. 
+            _.forEach(me.msgObservers, function (observer) {
+                observer(limitMessage);
+            }); 
+            
             callback(ex);
         }
     });
 
-    this.twStream.on('limit', function (limitMessage) {
-        console.log('LIMIT MESSAGE:', limitMessage);
-        callback(null);
-    })
+    this.tweetStream.on('limit', function (limitMessage) {
+        // Notify message observers of the new message. 
+        _.forEach(me.msgObservers, function (observer) {
+            observer(limitMessage);
+        });
+    });
 
-    this.twStream.on('disconnect', function(message) {
-        console.log('RESPONSE ENDED.');
-        callback(null);
+    this.tweetStream.on('warning', function (warningMessage) {
+        // Notify message observers of the new message. 
+        _.forEach(me.msgObservers, function (observer) {
+            observer(limitMessage);
+        });
+    });
+
+    this.tweetStream.on('disconnect', function (disconnectMessage) {
+        // Notify message observers of the new message. 
+        _.forEach(me.msgObservers, function (observer) {
+            observer(limitMessage);
+        });
     });
 };
 
@@ -116,40 +136,32 @@ function cleanupTweet(tweet, keywords) {
 
     if (tweet.html) {  // some tweets are without text
         // Identify keywords
-        for (var ii=0; ii<keywords.length; ii++) {
-            var regex = new RegExp( '(' + keywords[ii] + ')', 'gi' );
+        _.forEach(keywords, function(keyword) {
+            var regex = new RegExp( '(' + keyword + ')', 'gi' );
             tweet.html = tweet.html.replace(regex, '<span class="keyword">$1</span>');
-        }
+        });
         
         // Clean up URLs
-        if (tweet.entities && tweet.entities.urls && tweet.entities.urls.length > 0) {
-            for (var ii=0; ii<tweet.entities.urls.length; ii++) {
-                tweet.html = tweet.html.replace(tweet.entities.urls[ii].url, '<a href="' + tweet.entities.urls[ii].expanded_url + '" target="_blank">' + tweet.entities.urls[ii].display_url + '</a>');
-            }
-        }
-        
+        _.forEach(tweet.entities.urls, function(url) {
+            tweet.html = tweet.html.replace(url.url, _.template('<a href="<%=expanded_url%>" target="_blank"><%=display_url%></a>', url));
+        });
+
         // Clean up Media URLs
-        if (tweet.entities && tweet.entities.media && tweet.entities.media.length > 0) {
-            for (var ii=0; ii<tweet.entities.media.length; ii++) {
-                tweet.html = tweet.html.replace(tweet.entities.media[ii].url, '<a href="' + tweet.entities.media[ii].expanded_url + '" target="_blank">' + tweet.entities.media[ii].display_url + '</a>');
-            }
-        }
+        _.forEach(tweet.entities.media, function(url) {
+            tweet.html = tweet.html.replace(url.url, _.template('<a href="<%=expanded_url%>" target="_blank"><%=display_url%></a>', url));
+        });
         
         // Clean up hashtags
-        if (tweet.entities && tweet.entities.hashtags && tweet.entities.hashtags.length > 0) {
-            for (var jj=0; jj<tweet.entities.hashtags.length; jj++) {
-                var regEx = new RegExp('#' + tweet.entities.hashtags[jj].text, "ig");  // Using regex to ensure find/replace is case-insensitive. 
-                tweet.html = tweet.html.replace(regEx, '<a href="http://twitter.com/search?src=hash&q=%23' + tweet.entities.hashtags[jj].text + '" target="_blank">#' + tweet.entities.hashtags[jj].text + '</a>');
-            }
-        }
+        _.forEach(tweet.entities.hashtags, function(hashtag) {
+            var regEx = new RegExp('#' + hashtag.text, "ig");  // Using regex to ensure find/replace is case-insensitive. 
+            tweet.html = tweet.html.replace(regEx, _.template('<a href="http://twitter.com/search?src=hash&q=%23<%=text%>" target="_blank">#<%=text%></a>', hashtag));
+        });
         
         // Clean up @mentions
-        if (tweet.entities && tweet.entities.user_mentions && tweet.entities.user_mentions.length > 0) {
-            for (var jj=0; jj<tweet.entities.user_mentions.length; jj++) {
-                var regEx = new RegExp('@' + tweet.entities.user_mentions[jj].screen_name, "ig");  // Using regex to ensure find/replace is case-insensitive. 
-                tweet.html = tweet.html.replace(regEx, '<a href="http://twitter.com/' + tweet.entities.user_mentions[jj].screen_name + '" target="_blank" data-placement="top" data-toggle="tooltip" data-original-title="' + tweet.entities.user_mentions[jj].name + '">@' + tweet.entities.user_mentions[jj].screen_name + '</a>');
-            }
-        }
+        _.forEach(tweet.entities.user_mentions, function(mention) {
+            var regEx = new RegExp('@' + mention.screen_name, "ig");  // Using regex to ensure find/replace is case-insensitive. 
+            tweet.html = tweet.html.replace(regEx, _.template('<a href="http://twitter.com/<%=screen_name%>" target="_blank" data-placement="top" data-toggle="tooltip" data-original-title="<%=name%>">@<%=screen_name%></a>', mention));
+        });
     }
     
     return tweet;

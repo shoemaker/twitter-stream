@@ -104,6 +104,7 @@ io.set('transports', ['websocket',
                       'polling']);
 
 var newStream;  // Our stream to Twitter.
+
 io.on('connection', function(socket) {
     socket.emit('msg', { messages: [ { type: 'info', msg: 'Connection established.' }] });
     
@@ -131,16 +132,17 @@ io.on('connection', function(socket) {
                         // Figure out which rule applies here. 
                         var streamType = (isSuperUser(currUser.services.twitter.username) && (data.searchTerm || data.mapBounds)) ? 'public' : 'user';
                         newStream = new twitter.Stream(currUser.services.twitter, streamType);
-                        newStream.subscribe(function(tweet) {  // Subscribe (observe) the stream. Function to handle each tweet. 
+                        newStream.subscribe('tweet', function(tweet) {  // Subscribe (observe) the stream. Function to handle each tweet. 
                             socket.emit('tweet', tweet);
+                        });
+
+                        newStream.subscribe('message', function(msg) {
+                            socket.emit('msg', { messages: [ { 'type': 'alert-info', 'msg': msg } ] });
                         });
                 
                         // Fire up the stream. 
                         newStream.start(data.searchTerm, data.mapBounds, function(err) {
                             if (!err) {
-                                // socket.set('stream', newStream, function() {  // Save this stream for later. 
-                                //     socket.emit('ready');
-                                // });
                                 socket.emit('ready');
                             }
                         });
@@ -177,7 +179,7 @@ io.on('connection', function(socket) {
 // Shared function to stop a stream. 
 function stopStream(socket) {
     socket.emit('msg', { messages: [ { type: 'info', msg: 'Stopping stream.' }] });
-    if (newStream && newStream.twStream) newStream.twStream.stop();  // Kill the request
+    if (newStream && newStream.tweetStream) newStream.tweetStream.stop();  // Kill the request
 }
 
 // Determine if the provided username is among the list of super users
@@ -187,9 +189,9 @@ function stopStream(socket) {
 function isSuperUser(username) {
     if (c.twitter.userToken && c.twitter.userTokenSecret) return true;
     else if (c.superUsers) {
-        for (var ii=0; ii < c.superUsers.length; ii++) {
-            if (c.superUsers[ii] == username) { return true; }
-        }
+        _.forEach(c.superUsers, function (user ) {
+            if (user == username) return true;
+        });
     }
     return false;
 }

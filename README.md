@@ -28,30 +28,7 @@ Fire up the site
 
 	npm start
 
-Navigate to http://localhost:8088/stream 
-
-
-## Dependencies
-### [Express](http://expressjs.com/)
-Web application framework for Node.js.
-
-### [socket.io](http://socket.io)
-Web sockets library. 
-
-### [hogan.js](https://github.com/twitter/hogan.js)
-Mustache templating engine. 
-
-### [doT.js](http://olado.github.io/doT/)
-JavaScript templating engine. 
-
-### [moment](https://github.com/moment/moment)
-Parse, manipulate, and display dates.
-
-### [memory-cache](https://github.com/ptarjan/node-cache)
-A simple in-memory cache for nodejs. 
-
-### [mongodb](https://github.com/mongodb/node-mongodb-native)
-A node.js driver for MongoDB
+Navigate to `http://localhost:8088/stream`
 
 
 ## Open Issues
@@ -62,3 +39,10 @@ all incoming HTTP traffic from all HTTP streams to the Twitter streaming API.
 For example if userA and userB both opened a stream, userB (who established their connection last) would receive the incoming stream from user A in addition to their own. 
 I was unable to diagnose the cause and a solution, this is a work in progress. 
 
+## Notes 
+
+Details on [rate limiting](https://dev.twitter.com/docs/rate-limiting/1.1) using the Twitter streaming API.  
+How to [authorize a request](https://dev.twitter.com/docs/auth/authorizing-request) with the Twitter API.  
+How to [filter statuses](https://dev.twitter.com/docs/api/1.1/post/statuses/filter) from the Twitter streaming API.  
+Only [one stream per IP address](https://dev.twitter.com/docs/streaming-apis/streams/public#Connections) is allowed.  
+Useful [Node.js Twitter Client](https://github.com/ttezel/twit) used for this project.  
