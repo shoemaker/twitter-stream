@@ -189,7 +189,7 @@
         <script src="/stream/socket.io/socket.io.js"></script>
         <script src="/stream/library/doT/doT.min.js"></script>
         <script src="/stream/js/libs/jquery.tagcloud.js"></script>
-        <script type="text/javascript" src="http://maps.googleapis.com/maps/api/js?key=AIzaSyANGgwB0MPT7XLpq8jyX6Z5mHhHRnHz8Vk&sensor=false"></script>
+        <script type="text/javascript" src="http://maps.googleapis.com/maps/api/js?key=AIzaSyCpo7GGpAHe6opUPjdds01gdEa9bHKd084&sensor=false"></script>
         <script type="text/javascript" src="/stream/js/script.js"></script> 
         {{/isSuperUser}}
     </body>
