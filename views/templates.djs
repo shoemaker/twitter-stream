@@ -35,8 +35,7 @@
 			<ul>
 				<li><a href="#" class="searchTerm ignore">work</a></li>
 				<li><a href="#" class="searchTerm ignore">breakfast</a></li>
-				<li><a href="#" class="searchTerm ignore">4sq</a></li>
-				<li><a href="#" class="searchTerm ignore">NSA</a></li>
+				<li><a href="#" class="searchTerm ignore">swarmapp</a></li>
 			</ul>
 		</p>
 	{{?}}
